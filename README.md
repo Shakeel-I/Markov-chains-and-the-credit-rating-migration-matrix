@@ -1,20 +1,4 @@
-# Volatility-Smile-using-SAS-and-Python
-<img width="495" height="371" alt="image" src="https://github.com/user-attachments/assets/c0a32a23-4b6d-443e-be3d-e8285e7ecfec" />
+# Markov Chain Approach for Measuring Credit Rating Migration Risks
 
 
-
-
-
-
-ods graphics / reset width=6.4in height=4.8in imagemap;
-
-proc sgplot data=AAPL;
-	title height=14pt "Volatility Smile - AAPL Options";
-	loess x=strike y=impliedVolatility / nomarkers;
-	scatter x=strike y=impliedVolatility /;
-	xaxis grid;
-	yaxis grid;
-run;
-
-ods graphics / reset;
-title;
+This delves into the Markov chain method for measuring credit rating migration risks, a popular approach in both industry and academia. It emphasizes the accurate calibration of credit migration matrices and intensities, utilizing publicly available reports from agencies like Standard & Poor’s and Moody’s. The chapter models credit rating migrations and default events in discrete and continuous time, transforming different ratings into states of a Markov chain. It presents various methods for estimating probability transition matrices, including the Cohort Method, Duration Method, and Jarrow-Turnbull (JLT) Method. Additionally, it demonstrates how to use a Markov chain framework to price financial instruments like corporate bonds and derivatives, considering both constant and stochastic intensity matrices. The chapter also includes practical examples and exercises, making it a valuable resource for professionals seeking to understand and apply advanced credit risk modeling techniques.
