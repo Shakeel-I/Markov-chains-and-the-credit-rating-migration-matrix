@@ -1,26 +1,16 @@
-# Markov Chain Approach for Measuring Credit Rating Migration Risks
+# Markov Chain Application for IFRS 9 PD Term Structures in SAS
+
+<img width="797" height="237" alt="image" src="https://github.com/user-attachments/assets/d168b223-dd39-4ae4-bae3-0891b0b8b056" />
+
+This SAS approach uses a Markov chain to quantify credit rating migration risk by modeling ratings as discrete states and transitions between them over time. The core idea is that an asset’s future credit quality depends only on its current state, not on the path taken to reach it. In the code, the states are A, B, C (performing) and Default (an absorbing state). The transition matrix P encodes one-year transition probabilities, where each row sums to 1 and each entry P_ij represents the probability of moving from state i to state j in one year. For example, from A the model assigns a 80% chance to stay in A, 15% to migrate to B, 4% to C, and 1% to Default. The final column captures the probability of default, used for Stage 1 ECL under IFRS 9.
+
+<img width="500" height="375" alt="image" src="https://github.com/user-attachments/assets/09bb83ad-e569-4bcc-8694-d0d0bf07141b" /><img width="500" height="375" alt="image" src="https://github.com/user-attachments/assets/a7c78e61-ef25-497c-803e-dd3b64081604" />
+
+The analysis begins with a synthetic dataset of observed transitions, illustrating how firms might migrate between ratings or default. Using PROC IML, the code performs a point-in-time (PIT) calculation of the 1-year transition matrix and then propagates it across a 10-year horizon to derive both cumulative (lifetime) PD and marginal (annual) PD for each rating. The cumulative PD tracks the probability of default by the end of year t, while the marginal PD isolates the incremental default probability in each specific year. This distinction is critical for IFRS 9, which requires forward-looking PDs and lifetime credit risk assessment.
+
+<img width="798" height="379" alt="image" src="https://github.com/user-attachments/assets/abc7b546-ad85-4266-973c-30cf10ea21eb" />
 
 
-The Markov chain approach measures credit rating migration risk by modeling credit ratings as a sequence of states where the probability of moving to a new state depends only on the current state. This is done by creating a transition matrix of probabilities, where each entry P_ij represents the probability of moving from state i (e.g., an "AA" rating) to state j (e.g., an "A" rating) over a set period. This method is widely used to estimate credit migration matrices, predict future rating movements, and manage credit risk for portfolios and derivatives.
+The implementation includes data reshaping for plotting, producing two visualizations: (1) cumulative PD curves by rating over 10 years, and (2) marginal PD bars by year and rating. A final tabular report presents Year, Cum_PD, and Marg_PD values with clear footnotes explaining the definitions and their relevance for Stage 2 ECL calculations.
 
-# How it works
-States: Each credit rating (e.g., AAA, AA, A, BBB, etc.) is treated as a state in the Markov chain.
-
-Transition Probability: The core of the model is the transition matrix, denoted by P.
-- The element P_ij in this matrix is the probability of an asset moving from rating i to rating j in one period (e.g., one year).
-- For example, P_AA,A would be the probability of a bond with an AA rating being downgraded to an A rating in the next period.
-
-Markov Property: The model assumes that the future transition depends only on the current state, not on the sequence of events that preceded it.
-
-Matrix Calculation: These probabilities are calculated by analyzing historical data to count how many transitions occurred between each state over a specific period. The observed number of transitions from state i to state j is divided by the total number of times the system was in state i.
-
-# Applications
-Credit Risk Management: The model helps in predicting future credit quality and managing portfolio risk.
-
-Bond and Derivative Pricing: It can be used to price corporate debt, credit derivatives, and other financial instruments that are subject to default risk.
-
-Estimating Default Probabilities: By modeling rating migrations, the approach can help estimate the probability of a default event.
-
-Strategic Risk Management: It can be used to create more conservative risk-optimal portfolios by revealing stronger dependencies than other models.
-
-
+Overall, this SAS workflow operationalizes a Markov-based framework to estimate and communicate both lifetime and annual default probabilities, supporting credit risk management, pricing, and regulatory reporting under IFRS 9.
