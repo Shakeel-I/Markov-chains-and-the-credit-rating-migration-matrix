@@ -1,0 +1,102 @@
+/* 1. Generate Synthetic Rating Transition Data */ 
+data rating_data; 
+   input ID $ Start_Rating $ End_Rating $; 
+   datalines; 
+1 A A 
+2 A B 
+3 A Default 
+4 B B 
+5 B A 
+6 B Default 
+7 C C 
+8 C Default 
+9 C B 
+10 A A 
+; 
+run; 
+ 
+/* 2. Transition Matrix and Term Structure Calculation using PROC IML */ 
+proc iml; 
+    /* States: A, B, C are performing; Default is the absorbing state */ 
+    states = {"A" "B" "C" "Default"};  
+    n = ncol(states); 
+     
+    /* P = 1-Year Point-in-Time (PIT) Transition Matrix */ 
+    /* IFRS 9 requires PIT PDs reflecting current and forward-looking conditions */ 
+    P = {0.80 0.15 0.04 0.01,    
+         0.10 0.75 0.10 0.05,    
+         0.05 0.15 0.70 0.10,    
+         0.00 0.00 0.00 1.00}; 
+ 
+    print "Initial 1-Year PIT Transition Matrix (P)"[label=""] P[rowname=states colname=states]; 
+     
+    /* Footer describing the Matrix P */ 
+    print "NOTE: Matrix 'P' represents the 1-year Point-in-Time (PIT) transition probabilities."; 
+    print "      The last column (Default) represents the 12-month PD used for Stage 1 Expected Credit Loss (ECL)."; 
+ 
+    max_years = 10; 
+    cum_pd = j(max_years, n-1, 0);  
+    marg_pd = j(max_years, n-1, 0); 
+     
+    P_n = P;  
+    do year = 1 to max_years; 
+        /* Cumulative PD (Lifetime PD): Prob. of default at any time up to Year T */ 
+        cum_pd[year, ] = P_n[1:n-1, n]`;  
+         
+        /* Marginal PD: Prob. of default specifically within Year T */ 
+        if year = 1 then marg_pd[year, ] = cum_pd[year, ]; 
+        else marg_pd[year, ] = cum_pd[year, ] - cum_pd[year-1, ]; 
+         
+        P_n = P_n * P;  
+    end; 
+ 
+    /* Prepare data for export */ 
+    Years = (1:max_years)`; 
+    final_data = Years || cum_pd || marg_pd; 
+    create pd_results from final_data[colname={"Year" "Cum_A" "Cum_B" "Cum_C" "Marg_A" "Marg_B" "Marg_C"}]; 
+    append from final_data; 
+    close pd_results; 
+quit; 
+ 
+/* 3. Reshape Data for Plotting */ 
+data plot_data; 
+    set pd_results; 
+    array c(*) Cum_A Cum_B Cum_C; 
+    array m(*) Marg_A Marg_B Marg_C; 
+    do i = 1 to dim(c); 
+        Rating = scan("A B C", i); 
+        Cumulative_PD = c[i]; 
+        Marginal_PD = m[i]; 
+        output; 
+    end; 
+    label Cumulative_PD="Cumulative (Lifetime) PD" 
+          Marginal_PD="Marginal (Forward) PD"; 
+    drop Cum_A Cum_B Cum_C Marg_A Marg_B Marg_C i; 
+run; 
+ 
+/* 4. Generate Professional Charts */ 
+proc sgplot data=plot_data; 
+    title "Cumulative PD Term Structure (IFRS 9 Lifetime PD)"; 
+    series x=Year y=Cumulative_PD / group=Rating lineattrs=(thickness=2) markers; 
+    yaxis label="Cumulative Probability of Default (PD)" grid valuesformat=percent8.1; 
+    xaxis label="Year (Projection Horizon)" grid values=(1 to 10 by 1); 
+run; 
+ 
+proc sgplot data=plot_data; 
+    title "Marginal (Forward) PD Term Structure"; 
+    vbar Year / response=Marginal_PD group=Rating groupdisplay=cluster; 
+    yaxis label="Marginal Probability of Default (PD)" grid valuesformat=percent8.1; 
+    xaxis label="Year"; 
+run; 
+ 
+/* 5. Final Tabular Report with Detailed Footnotes */ 
+proc print data=pd_results noobs label; 
+    title "IFRS 9 PD Term Structure Table"; 
+    format Cum_A Cum_B Cum_C Marg_A Marg_B Marg_C percent8.2; 
+    label Year="Year" 
+          Cum_A="Cum_PD A" Cum_B="Cum_PD B" Cum_C="Cum_PD C" 
+          Marg_A="Marg_PD A" Marg_B="Marg_PD B" Marg_C="Marg_PD C"; 
+    footnote1 "Definitions:"; 
+    footnote2 "1. Cum_X: Cumulative (Lifetime) PD for Rating X. Represents the probability of default by the end of that year (Stage 2 input)."; 
+    footnote3 "2. Marg_X: Marginal (Forward) PD for Rating X. Represents the incremental probability of default occurring specifically in that year."; 
+run;
